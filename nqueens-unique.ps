@@ -1,0 +1,249 @@
+% nqueensunique - the nqueens problem implemented in postscript exclude
+% solutions that differ only by symmetry operations (rotations and reflections)
+% Copyright (C) 2014  Andreas Rohner
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU Lesser General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU Lesser General Public License for more details.
+% 
+% You should have received a copy of the GNU Lesser General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+/readinteger {
+	(>: ) print flush
+	(%stdin) (r) file 64 string readline pop
+	cvi
+} def
+
+(Please enter the # of queens?)=
+
+/n readinteger def
+/bd 1000 dict def
+
+% debugging command - prints out the stack and
+% halts execution until key is pressed
+/p {
+	pstack
+	(>: ) print flush
+	(%stdin) (r) file 64 string readline pop pop
+} def
+
+% converts the board on the stack into a name, which can be
+% used with a dictionary
+/boardtoname {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		2 copy 2 mul (XX) putinterval
+		dup //n 1 add exch sub index
+		(XX) cvs exch 2 mul exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% create vertical reflection of the board and convert it
+% into a name
+/boardtov {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		2 copy 2 mul (XX) putinterval
+		dup //n 1 add exch sub index
+		//n 1 sub exch sub
+		(XX) cvs exch 2 mul exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% create horizontal reflection of the board and convert it
+% into a name
+/boardtoh {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		2 copy 2 mul (XX) putinterval
+		dup 2 add index
+		(XX) cvs exch 2 mul exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% create diagonal reflection of the board and convert it
+% into a name
+/boardtod1 {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		% read in current row and column
+		dup //n 1 add exch sub index 
+		% calculate new row and column r=s, s=r
+		exch 
+		(XX) cvs exch 2 mul dup (XX) 4 index 3 1 roll putinterval exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% create diagonal reflection of the board and convert it
+% into a name
+/boardtod2 {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		% read in current row and column
+		dup //n 1 add exch sub index
+		% calculate new row and column r=n-s -1, s=n-r-1
+		//n 1 sub exch sub exch //n 1 sub exch sub
+		(XX) cvs exch 2 mul dup (XX) 4 index 3 1 roll putinterval exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% rotate board 90 degrees and convert it into a name
+/boardtor90 {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		% read in current row and column
+		dup //n 1 add exch sub index
+		% calculate new row and column
+		exch //n 1 sub exch sub
+		(XX) cvs exch 2 mul dup (XX) 4 index 3 1 roll putinterval exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% rotate board 180 degrees and convert it into a name
+/boardtor180 {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		% read in current row and column
+		dup //n 1 add exch sub index
+		% calculate new row and column
+		//n 1 sub exch sub exch //n 1 sub exch sub exch
+		(XX) cvs exch 2 mul dup (XX) 4 index 3 1 roll putinterval exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% rotate board 270 degrees and convert it into a name
+/boardtor270 {
+	//n 2 mul string
+	0 1 //n 1 sub {
+		% read in current row and column
+		dup //n 1 add exch sub index
+		% calculate new row and column
+		//n 1 sub exch sub exch
+		(XX) cvs exch 2 mul dup (XX) 4 index 3 1 roll putinterval exch 2 index 3 1 roll putinterval
+	} for
+	cvn
+} bind def
+
+% (ab)use the dictionary as a hash table to store kown solutions
+% if a solution is not known, add it and all of its reflections and rotations
+% to the dictionary. 
+/unique {
+	boardtoname dup //bd exch known { pop false } { 
+		//bd exch 0 put 
+		//n mod 2 0 ne {
+			%nur für ungerade n notwendig
+			boardtov //bd exch 0 put
+		} if
+		boardtoh //bd exch 0 put
+		boardtod1 //bd exch 0 put
+		boardtod2 //bd exch 0 put
+		boardtor90 //bd exch 0 put
+		boardtor180 //bd exch 0 put
+		boardtor270 //bd exch 0 put
+		true } ifelse	
+} bind def
+
+% check - every element on the stack contains an integer, which represents
+% the column of the board
+/check {
+	% put temporary variables on the stack
+	dup 1 sub dup 2 add
+	
+	% loop through all rows to the current row
+	1 1 count 5 sub {
+		% read column index
+		2 add index
+		
+		% check for a queen in the same column
+		dup 4 index eq { pop false exit } if
+
+		% check diagonals
+		2 copy eq { pop false exit } if
+		2 index eq { false exit } if
+
+		1 add exch 1 sub exch
+	} for
+} bind def
+
+% add up the column value until n-1 is reached, backtrack
+% if none of those configurations is valid, add new row if it is
+/backtrack {
+	1 add 1 //n 1 sub  {
+		% if check returns ture a new row is added
+		check false ne { pop -1 exit } if
+		pop pop
+		pop
+	} for
+} bind def
+
+/solveodd {
+	/c 0 def
+	/u 0 def
+	//n 2 idiv 1 sub
+	{	
+		backtrack
+
+		% queen on first position was processed
+		count dup 1 eq { pop exit } if
+
+		% n elements on the stack, we have a solution, inc solution count
+		1 sub //n eq { pop /c c 1 add def unique { /u u 1 add def } if } if
+	} loop
+
+	{	
+		backtrack
+		
+		% nothing left on the stack, we are finished
+		% backtracking has removed everything on the stack
+		count dup 0 eq { pop exit } if
+
+		% vertical reflection
+		1 sub //n eq { pop /c c 2 add def unique { /u u 1 add def } if } if
+	} loop
+	u
+	c
+} bind def
+
+/solveeven {
+	/c 0 def
+	/u 0 def
+	//n 2 idiv 1 sub
+	{	
+		backtrack
+
+		% nothing left on the stack, we are finished
+		% backtracking has removed everything on the stack
+		count dup 0 eq { pop exit } if
+
+		% n elements on the stack, we have a solution, inc solution count
+		1 sub //n eq { pop /c c 1 add def unique { /u u 1 add def } if } if
+	} loop
+	% vertical reflection
+	u
+	c 2 mul
+} bind def
+
+/solve {
+	//n 1 lt { 0 }
+	{
+		//n 1 eq { 1 }
+		{ //n 2 mod 0 eq { solveeven } { solveodd } ifelse }
+		ifelse
+	} ifelse
+} bind def
+
+solve pstack quit

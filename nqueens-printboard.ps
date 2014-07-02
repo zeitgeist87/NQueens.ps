@@ -1,0 +1,98 @@
+% nqueensall - the nqueens problem implemented in postscript (interactive)
+% Copyright (C) 2014  Andreas Rohner
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU Lesser General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU Lesser General Public License for more details.
+% 
+% You should have received a copy of the GNU Lesser General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+/readinteger {
+	(>: ) print flush
+	(%stdin) (r) file 64 string readline pop
+	cvi
+} def
+
+(Please enter the # of queens?)=
+
+/n readinteger def
+
+% debugging command - prints out the stack and
+% halts execution until key is pressed
+/p {
+	pstack
+	(>: ) print flush
+	(%stdin) (r) file 64 string readline pop pop
+} def
+
+% check - every element on the stack contains an integer, which represents
+% the column of the board
+/check {
+	% put temporary variables on the stack
+	dup 1 sub dup 2 add
+	
+	% loop through all rows to the current row
+	1 1 count 5 sub {
+		% read column index
+		2 add index
+		
+		% check for a queen in the same column
+		dup 4 index eq { pop false exit } if
+
+		% check diagonals
+		2 copy eq { pop false exit } if
+		2 index eq { false exit } if
+
+		1 add exch 1 sub exch
+	} for
+} bind def
+
+% add up the column value until n-1 is reached, backtrack
+% if none of those configurations is valid, add new row if it is
+/backtrack {
+	1 add 1 //n 1 sub  {
+		% if check returns ture a new row is added
+		check false ne { pop -1 exit } if
+		pop pop
+		pop
+	} for
+} bind def
+
+% print the current board on the stack to stdout
+/printboard {
+	(New board:)=
+	0 1 //n 1 sub {
+		//n 1 sub exch sub index
+		0 1 //n 1 sub {
+			1 index eq { (D) } { (*) } ifelse print
+		} for
+		(\n) print
+		pop
+	} for
+	flush
+} bind def
+
+/solve {
+	-1
+	{	
+		backtrack
+
+		% nothing left on the stack, we are finished
+		% backtracking has removed everything on the stack
+		count dup 0 eq { pop exit } if
+
+		% n elements on the stack, we have a solution, inc solution count
+		1 sub //n eq { pop printboard } if
+	} loop
+	
+} bind def
+
+
+solve quit
