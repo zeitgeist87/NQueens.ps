@@ -1,4 +1,4 @@
-postscript-nqueens
+NQueens.ps
 ==================
 
 Three implementations of the famous nqueens problem, written in postscript.
